@@ -1,8 +1,6 @@
-# Import the required libraries
-import pandas as pd
-
-# Import the data
-booking_data = pd.read_csv("data/Hotel_bookings.csv")
+# =================================
+# Initial comments for preprcessing
+# =================================
 
 #drop ReservationStatus and ReservationStatusDate. Check-Out always means IsCanceled=0, and Canceled or No-Show always means 1. The status date is when that outcome was recorded
 #Text columns are padded with whitespace. Strip them before any grouping or encoding.
@@ -24,3 +22,42 @@ booking_data = pd.read_csv("data/Hotel_bookings.csv")
 #Stratify on IsCanceled.
 
 #Duplicates and Categorical encoding 
+
+
+# Import the required libraries
+import pandas as pd
+
+# Import the data
+booking_data = pd.read_csv("data/Hotel_bookings.csv")
+
+# Remove Missing values in ['Children', 'Country'] columns
+booking_data.dropna(subset=['Children', 'Country'], inplace=True)
+print (booking_data.shape) # New shape => (79302, 31)
+
+# Remove invalid bookings
+booking_data = booking_data[
+    ~(
+        ((booking_data['StaysInWeekNights'] == 0) & (booking_data['StaysInWeekendNights'] == 0) & (booking_data['IsCanceled'] == 0)) |
+        ((booking_data['Adults'] == 0) & (booking_data['IsCanceled'] == 0)) | 
+        (booking_data['MarketSegment'] == 'Undefined') | 
+        (booking_data['DistributionChannel'] == 'Undefined')
+    )
+]
+print (booking_data.shape) # New shape => (78907, 31)
+
+# Convert "NULL" in ['Company'] into "Unknown" as a category
+booking_data['Company'] = booking_data['Company'].str.strip()
+booking_data['Company'] = booking_data['Company'].str.replace('NULL', 'Unknown', regex=False)
+print (booking_data['Company'].value_counts())
+print (booking_data.shape)
+
+# Remove row with ADR 5400 [Very outlier]
+booking_data = booking_data[
+    ~(
+        ((booking_data['ADR'] == 5400)))
+]
+print (booking_data.shape)
+
+# Clip extreme outliers in non-continous numeric columuns to specific upper limit
+booking_data['Babies'] = booking_data['Babies'].clip(upper=1)
+booking_data['Children'] = booking_data['Children'].clip(upper=2)
